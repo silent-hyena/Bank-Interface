@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Bank InterFace Dashboard</title>
+    <link rel="stylesheet" href="/dashboard.css">
+    <!-- <style>
+        body {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+        }
+
+ 
+
+        .sidebar {
+            position: absolute;
+            top: 50px;
+            right: 10px;
+            width: 160px;
+            /* background-color: #f4f4f4;
+            border: 1px solid #ccc; */
+            display: none;
+            flex-direction: column;
+            z-index: 1000;
+        }
+
+        .sidebar.show {
+            display: flex;
+        }
+
+
+        .sidebar button {
+  
+            background-color: #4caf50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+
+        .form-container,
+        .response-box,
+        .transaction-table {
+            margin-top: 20px;
+        }
+
+        .transaction-table table,
+        .response-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .transaction-table th,
+        .transaction-table td,
+        .response-table th,
+        .response-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+
+        .transaction-table th,
+        .response-table th {
+            background-color: #f2f2f2;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style> -->
+</head>
+
+<body class="container">
+    <div class="top-bar">
+        <h1>Welcome to <span class="brand">Banking Dashboard</span></h1>
+        <button onclick="toggleSidebar()">☰</button>
+    </div>
+
+    <div class="button-group sidebar hidden" id="sidebar">
+        <button id="logoutBtn">Logout</button>
+        <button id="resetPasswordBtn">Reset Password</button>
+        <button id="viewProfileBtn">View Profile</button>
+    </div>
+
+    <div class="button-group">
+        <button id="payBtn">Make Payment</button>
+        <button id="addBalanceBtn">Add Balance</button>
+        <button id="viewTransactionsBtn">View Transactions</button>
+    </div>
+
+    <div id="paymentForm" class="form-container hidden">
+        <h3>Make a Payment</h3>
+        <form id="makePayment" class="form">
+            <input type="number" placeholder="Amount" name="amount" required>
+            <input type="text" placeholder="Recipient Mobile" name="to" required>
+            <button type="submit">Send</button>
+        </form>
+    </div>
+
+    <div id="addBalanceForm" class="form-container hidden">
+        <h3>Add Balance</h3>
+        <form id="addBalance" class="form">
+            <input type="number" placeholder="Amount" name="amount" required>
+            <button type="submit">Add</button>
+        </form>
+    </div>
+    <div id="resetPasswordForm" class="form-container hidden">
+
+        <h3>Enter New Pasword</h3>
+        <form id="changePassword" class="form">
+            <input type="password" placeholder="Password" name="newpassword" required>
+            <input type="password" placeholder="Confirm new password" name="confirmnewpassword" required>
+            <button type="submit">Change</button>
+        </form>
+
+    </div>
+    <div id="transactionsBox" class="transaction-table hidden">
+        <h3>Transaction History</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Amount</th>
+                    <th>Type</th>
+                    <th>From</th>
+                    <th>To</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody id="txnBody"></tbody>
+        </table>
+    </div>
+
+    <div id="paymentOptions" class="button-group payment-menu hidden">
+        <button onclick="useLocalPayment()">Pay locally</button>
+        <button onclick="useRazorpay()">Use Razorpay</button>
+    </div>
+
+    <div id="responseBox" class="response-box hidden"></div>
+
+    <script>
+        const show = id => document.getElementById(id).classList.remove("hidden");
+        const hide = id => document.getElementById(id).classList.add("hidden");
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById("sidebar");
+            sidebar.classList.toggle("show");
+        }
+
+
+        document.getElementById("logoutBtn").addEventListener("click", async () => {
+            await fetch("/logout", { method: "POST" });
+            window.location.href = "/homepage.html";
+        });
+
+        document.getElementById("viewProfileBtn").addEventListener("click", async () => {
+            const res = await fetch("/operation/getprofile");
+            const profile = await res.json();
+            if (profile.alert) return alert(profile.alert);
+
+            let html = `<table class="response-table"><tbody>`;
+            for (const [key, val] of Object.entries(profile)) {
+                html += `<tr><th>${key}</th><td>${val}</td></tr>`;
+            }
+            html += `</tbody></table>`;
+
+            const responseBox = document.getElementById("responseBox");
+            responseBox.innerHTML = html;
+            show("responseBox");
+            hide("paymentForm");
+            hide("addBalanceForm");
+            hide("transactionsBox");
+            hide("paymentOptions");
+            hide("resetPasswordForm");
+
+
+        });
+
+        function toggleDropdown() {
+            const paymentMenu = document.getElementById("paymentOptions");
+            paymentMenu.classList.toggle("hidden");
+        }
+
+        document.getElementById("payBtn").addEventListener("click", () => {
+            toggleDropdown();
+            hide("addBalanceForm");
+            hide("transactionsBox");
+            hide("responseBox");
+            hide("paymentForm");
+            hide("resetPasswordForm");
+        });
+
+        document.getElementById("addBalanceBtn").addEventListener("click", () => {
+            show("addBalanceForm");
+            hide("paymentForm");
+            hide("transactionsBox");
+            hide("responseBox");
+            hide("paymentOptions");
+            hide("resetPasswordForm");
+        });
+
+        document.getElementById("resetPasswordBtn").addEventListener("click", () => {
+            show("resetPasswordForm")
+            hide("addBalanceForm");
+            hide("paymentForm");
+            hide("transactionsBox");
+            hide("responseBox");
+            hide("paymentOptions");
+        })
+
+        document.getElementById("viewTransactionsBtn").addEventListener("click", async () => {
+            hide("responseBox");
+            const res = await fetch("/operation/gettransactions");
+            const txns = await res.json();
+
+            if (txns.alert) return alert(txns.alert);
+
+            const tbody = document.getElementById("txnBody");
+            tbody.innerHTML = "";
+            txns.forEach((txn, index) => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+          <td>${index + 1}</td>
+          <td>${txn.amount}</td>
+          <td>${txn.type}</td>
+          <td>${txn.from || '-'}</td>
+          <td>${txn.to || '-'}</td>
+          <td>${txn.date}</td>`;
+                tbody.appendChild(row);
+            });
+
+            show("transactionsBox");
+            hide("resetPasswordForm")
+            hide("paymentForm");
+            hide("addBalanceForm");
+            hide("responseBox");
+            hide("paymentOptions");
+        });
+
+        function useLocalPayment() {
+            show("paymentForm");
+            hide("addBalanceForm");
+            hide("transactionsBox");
+            hide("responseBox");
+            hide("paymentOptions");
+            hide("resetPasswordForm")
+        }
+
+        function useRazorpay() {
+            window.location.href = "/operation/razor/razorAPI.html";
+        }
+
+        document.getElementById("makePayment").addEventListener("submit", async e => {
+            e.preventDefault();
+            const form = e.target;
+            const data = {
+                amount: form.amount.value,
+                to: form.to.value
+            };
+            hide("responseBox");
+
+            const res = await fetch("/operation/makepayment", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+            });
+
+            const text = await res.text();
+            const responseBox = document.getElementById("responseBox");
+            responseBox.innerHTML = "";
+
+            try {
+                const json = JSON.parse(text);
+                let html = `<table class="response-table"><tbody>`;
+                for (const [key, val] of Object.entries(json)) {
+                    html += `<tr><th>${key}</th><td>${val}</td></tr>`;
+                }
+                html += `</tbody></table>`;
+                responseBox.innerHTML = html;
+                form.reset();
+                hide("paymentForm");
+                show("responseBox");
+            } catch {
+                alert(text);
+            }
+
+            
+
+        });
+
+        document.getElementById("changePassword").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const reqObj = {
+                "newpassword": form.newpassword.value,
+                "confirmnewpassword": form.confirmnewpassword.value
+            }
+            const res = await fetch("operation/resetpassword", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(reqObj)
+            })
+            const data = await res.json();
+            if (data.alert) {
+                form.reset();
+                
+                // hide("resetPasswordForm")
+                return alert(data.alert);
+            }
+            else {
+                alert("Cannot change your password.")
+            }
+        })
+
+        document.getElementById("addBalance").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            hide("responseBox");
+            const form = e.target;
+            const data = { amount: form.amount.value };
+            const res = await fetch("/operation/addbalance", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+            });
+            const result = await res.json();
+            if ("alert" in result) return alert(result.alert);
+
+            document.getElementById("responseBox").innerText = result.message;
+            show("responseBox");
+            form.reset();
+        });
+    </script>
+</body>
+
+</html>

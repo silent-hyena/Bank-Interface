@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Bank InterFace Dashboard</title>
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .form-container,
+    .response-box,
+    .transaction-table {
+      margin-top: 20px;
+    }
+
+    .transaction-table table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    .transaction-table th,
+    .transaction-table td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: center;
+    }
+
+    .transaction-table th {
+      background-color: #f2f2f2;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .button-group button {
+      margin-right: 10px;
+    }
+
+    .response-box {
+      padding: 10px;
+      border: 1px solid #ccc;
+      background: #f9f9f9;
+    }
+  </style>
+</head>
+
+<body class="container">
+  <h1>Welcome to <span class="brand">Banking Dashboard</span></h1>
+
+  <div class="button-group">
+    <button id="logoutBtn">Logout</button>
+    <button id="payBtn">Make Payment</button>
+    <button id="addBalanceBtn">Add Balance</button>
+    <button id="viewTransactionsBtn">View Transactions</button>
+  </div> -->
+
+  <!-- Payment Form -->
+  <div id="paymentForm" class="form-container hidden">
+    <h3>Make a Payment</h3>
+    <form id="makePayment" class="form">
+      <input type="number" placeholder="Amount" name="amount" required>
+      <input type="text" placeholder="Recipient Mobile" name="to" required>
+      <button type="submit">Send</button>
+    </form>
+  </div>
+
+  <!-- Add Balance Form -->
+  <div id="addBalanceForm" class="form-container hidden">
+    <h3>Add Balance</h3>
+    <form id="addBalance" class="form">
+      <input type="number" placeholder="Amount" name="amount" required>
+      <button type="submit">Add</button>
+    </form>
+  </div>
+
+
+
+
+
+  <!-- Transactions Table -->
+  <div id="transactionsBox" class="transaction-table hidden">
+    <h3>Transaction History</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Amount</th>
+          <th>Type</th>
+          <th>From</th>
+          <th>To</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody id="txnBody">
+        <!-- Populated dynamically -->
+      </tbody>
+    </table>
+  </div>
+
+
+  <!-- payment options -->
+  <div id="paymentOptions" class="button-group  payment-menu hidden">
+    <button onclick="useLocalPayment()">Pay locally</button>
+    <button onclick="useRazorpay()">Use Razorpay</button>
+  </div>
+
+  <!-- Server Response -->
+  <div id="responseBox" class="response-box hidden"></div>
+
+  <script>
+    const show = (id) => document.getElementById(id).classList.remove("hidden");
+    const hide = (id) => document.getElementById(id).classList.add("hidden");
+
+    // Logout
+    document.getElementById("logoutBtn").addEventListener("click", async () => {
+      await fetch("/logout", { method: "POST" });
+      window.location.href = "/homepage.html";
+    });
+
+    // functiom for toggle payment option:
+    function toggleDropdown() {
+      const paymentMenu = document.getElementById("paymentOptions");
+      paymentMenu.classList.toggle("hidden");
+    }
+
+    // Toggle Payment Form
+    document.getElementById("payBtn").addEventListener("click", () => {
+      // window.location.href = 'http://localhost:3600/operation/rajor/index.html'
+      toggleDropdown();
+      // show("paymentForm");
+      hide("addBalanceForm");
+      hide("transactionsBox");
+      hide("responseBox");
+      hide("paymentForm");
+
+    });
+
+    // Toggle Add Balance Form
+    document.getElementById("addBalanceBtn").addEventListener("click", () => {
+      show("addBalanceForm");
+      hide("paymentForm");
+      hide("transactionsBox");
+      hide("responseBox");
+      hide("paymentOptions");
+    });
+
+    document.getElementById("viewTransactionsBtn").addEventListener("click", async () => {
+      hide("responseBox");
+
+      const res = await fetch("/operation/gettransactions");
+      const txns = await res.json();
+
+      if ("alert" in txns) {
+        alert(txns.alert);
+        return;
+      }
+
+      const tbody = document.getElementById("txnBody");
+      tbody.innerHTML = ""; // Clear old rows
+
+      txns.forEach((txn, index) => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+      <td>${index + 1}</td>
+      <td>${txn.amount}</td>
+      <td>${txn.type}</td>
+      <td>${txn.from || '-'}</td>
+      <td>${txn.to || '-'}</td>
+      <td>${txn.date}</td>
+    `;
+        tbody.appendChild(row);
+      });
+
+      show("transactionsBox");
+      hide("paymentForm");
+      hide("addBalanceForm");
+      hide("responseBox");
+      hide("paymentOptions");
+    });
+
+
+
+    // Handler for Pay locally
+    function useLocalPayment() {
+      show("paymentForm");
+      hide("addBalanceForm");
+      hide("transactionsBox");
+      hide("responseBox");
+      hide("paymentOptions");
+    }
+
+    // Handler for Razorpay
+    function useRazorpay() {
+      window.location.href = "/operation/razor/razorAPI.html";
+    }
+
+    // make Payment
+    document.getElementById("makePayment").addEventListener("submit", async e => {
+      e.preventDefault();
+      const form = e.target;
+      const data = {
+        amount: form.amount.value,
+        to: form.to.value
+      };
+      hide("responseBox");
+      // 1) send request
+      const res = await fetch("/operation/makepayment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+
+      // 2) read the entire body as text one time
+      const text = await res.text();
+      console.log(text)
+
+      // 3) clear old content
+      const responseBox = document.getElementById("responseBox");
+      responseBox.innerHTML = "";
+
+      // 4) try to parse JSON; on failure render as plain text
+      try {
+        const json = JSON.parse(text);
+        let html = `<table class="response-table"><tbody>`;
+        for (const [key, val] of Object.entries(json)) {
+          html += `<tr><th>${key}</th><td>${val}</td></tr>`;
+        }
+        html += `</tbody></table>`;
+        responseBox.innerHTML = html;
+      } catch {
+        // not JSON → show as message
+        // responseBox.innerHTML = `<p>${text}</p>`;
+        alert(text)
+      }
+
+      show("responseBox");
+      form.reset();
+      hide("paymentForm")
+    });
+
+
+
+    // Add Balance Submit
+    document.getElementById("addBalance").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      hide("responseBox")
+      const form = e.target;
+      const data = { amount: form.amount.value };
+      const res = await fetch("/operation/addbalance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+      const result = await res.json();
+      if("alert" in result){
+        alert(result.alert)
+        return;
+      }
+      // const msg = await res.text();
+      document.getElementById("responseBox").innerText = result.message;
+      show("responseBox");
+
+      form.reset();
+
+    });
+  </script>
+</body>
+
+</html> -->

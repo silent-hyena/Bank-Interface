@@ -1,0 +1,80 @@
+<!-- index.html -->
+<! DOCTYPE html>
+  <html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <title>Bank Interface - Home</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+
+  <body class="container">
+    <h1>Welcome to <span class="brand">Internet Banking InterFace</span></h1>
+
+    <div class="form-container">
+      <h2>Signup</h2>
+      <form id="signupForm" class="form">
+        <input type="text" placeholder="Username" name="username" required>
+        <input type="text" placeholder="Mobile" name="mobile" required>
+        <input type="password" placeholder="Password" name="password" required>
+        <input type="password" placeholder="Confirm Password" name="confirmPassword" required>
+        <button type="submit">Sign Up</button>
+      </form>
+    </div>
+
+    <div class="form-container">
+      <h2>Login</h2>
+      <form id="loginForm" class="form">
+        <input type="text" placeholder="Username" name="username" required>
+        <input type="password" placeholder="Password" name="password" required>
+        <button type="submit">Login</button>
+      </form>
+    </div>
+
+    <script>
+      document.getElementById("signupForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const data = {
+          username: form.username.value,
+          mobile: form.mobile.value,
+          password: form.password.value,
+          confirmPassword: form.confirmPassword.value
+        };
+        const res = await fetch("/signup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data)
+        });
+        const msg = await res.json();
+        if ("alert" in msg) {
+          alert(msg.alert)
+        }
+        else { alert("Account Created.") }
+      });
+
+      document.getElementById("loginForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const data = {
+          username: form.username.value,
+          password: form.password.value
+        };
+        const res = await fetch("/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data)
+        });
+        const result = await res.json()
+        if ("alert" in result) {
+          alert(result.alert);
+        }
+        else {
+          window.location.href = result.redirect;
+        }
+
+      });
+    </script>
+  </body>
+
+  </html>
